@@ -1,26 +1,26 @@
 """Unit tests for GCSurplus Monitor scraper."""
 
 import json
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
 import pytest
 import responses
-from unittest.mock import patch, MagicMock
-from datetime import datetime
 
 from scraper import (
     Item,
     SearchConfig,
+    build_embed,
+    build_search_url,
+    fetch_item_detail,
+    has_next_page,
     load_config,
     load_seen,
-    save_seen,
-    build_search_url,
     parse_listing,
-    has_next_page,
-    fetch_item_detail,
-    build_embed,
-    send_discord_notification,
     run_once,
+    save_seen,
+    send_discord_notification,
 )
-
 
 # ─────────────────────────────────────────────
 #  Fixtures
@@ -348,9 +348,7 @@ class TestDiscord:
         """Test successful Discord notification."""
         responses.post("https://discord.com/api/webhooks/test", status=204)
 
-        result = send_discord_notification(
-            "https://discord.com/api/webhooks/test", sample_item, sample_search
-        )
+        result = send_discord_notification("https://discord.com/api/webhooks/test", sample_item, sample_search)
 
         assert result is True
         assert len(responses.calls) == 1
@@ -364,9 +362,7 @@ class TestDiscord:
             body='{"message": "Invalid webhook"}',
         )
 
-        result = send_discord_notification(
-            "https://discord.com/api/webhooks/test", sample_item, sample_search
-        )
+        result = send_discord_notification("https://discord.com/api/webhooks/test", sample_item, sample_search)
 
         assert result is False
 
@@ -385,9 +381,7 @@ class TestIntegration:
     """Integration tests for main workflow."""
 
     @responses.activate
-    def test_run_once_finds_new_items(
-        self, tmp_path, sample_config, sample_listing_html, sample_detail_html
-    ):
+    def test_run_once_finds_new_items(self, tmp_path, sample_config, sample_listing_html, sample_detail_html):
         """Test that run_once finds and processes new items."""
         # Setup files
         config_file = tmp_path / "config.json"
@@ -395,9 +389,7 @@ class TestIntegration:
         config_file.write_text(json.dumps(sample_config))
 
         # Mock HTTP responses
-        responses.get(
-            "https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200
-        )
+        responses.get("https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200)
         responses.get(
             "https://gcsurplus.ca/mn-fra.cfm?snc=wfsav&scn=601279&lcn=762279&lct=L",
             body=sample_detail_html,
@@ -422,18 +414,14 @@ class TestIntegration:
             assert count == 2  # Two new items found
 
     @responses.activate
-    def test_run_once_skips_seen_items(
-        self, tmp_path, sample_config, sample_listing_html
-    ):
+    def test_run_once_skips_seen_items(self, tmp_path, sample_config, sample_listing_html):
         """Test that run_once skips already seen items."""
         config_file = tmp_path / "config.json"
         seen_file = tmp_path / "seen_items.json"
         config_file.write_text(json.dumps(sample_config))
         seen_file.write_text(json.dumps({"seen": ["762279", "762280"]}))
 
-        responses.get(
-            "https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200
-        )
+        responses.get("https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200)
 
         with (
             patch("scraper.CONFIG_FILE", config_file),
@@ -482,9 +470,7 @@ class TestDataclasses:
 
     def test_search_config_creation(self):
         """Test SearchConfig dataclass creation."""
-        search = SearchConfig(
-            keyword="Test", category_code="9800", category_name="Test Category"
-        )
+        search = SearchConfig(keyword="Test", category_code="9800", category_name="Test Category")
 
         assert search.keyword == "Test"
         assert search.enabled is True  # Default value
