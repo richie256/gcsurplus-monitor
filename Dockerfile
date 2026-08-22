@@ -15,3 +15,5 @@ VOLUME ["/app/config.json", "/app/seen_items.json", "/app/scraper.log"]
 # Run single check by default (use --once flag behavior)
 # Override with: docker run <image> python scraper.py
 CMD ["python", "scraper.py", "--once"]
+
+# Updated: Base image bumped in CI/CD
