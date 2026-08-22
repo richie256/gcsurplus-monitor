@@ -3,7 +3,6 @@
 import json
 import pytest
 import responses
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
@@ -27,6 +26,7 @@ from scraper import (
 #  Fixtures
 # ─────────────────────────────────────────────
 
+
 @pytest.fixture
 def sample_config():
     """Sample configuration for testing."""
@@ -38,9 +38,9 @@ def sample_config():
                 "keyword": "Montre",
                 "category_code": "9800",
                 "category_name": "9800 - Bijoux",
-                "enabled": True
+                "enabled": True,
             }
-        ]
+        ],
     }
 
 
@@ -63,7 +63,7 @@ def sample_item():
         condition="La montre est fonctionnelle",
         image_url="https://gcsurplus.ca/lotImages/2988960.jpeg",
         all_image_urls=["https://gcsurplus.ca/lotImages/2988960.jpeg"],
-        url="https://gcsurplus.ca/mn-fra.cfm?lcn=762279&scn=601279"
+        url="https://gcsurplus.ca/mn-fra.cfm?lcn=762279&scn=601279",
     )
 
 
@@ -74,7 +74,7 @@ def sample_search():
         keyword="Montre",
         category_code="9800",
         category_name="9800 - Bijoux",
-        enabled=True
+        enabled=True,
     )
 
 
@@ -127,6 +127,7 @@ def sample_detail_html():
 # ─────────────────────────────────────────────
 #  Config Tests
 # ─────────────────────────────────────────────
+
 
 class TestConfig:
     """Tests for configuration loading/saving."""
@@ -182,6 +183,7 @@ class TestConfig:
 #  URL Building Tests
 # ─────────────────────────────────────────────
 
+
 class TestURLBuilder:
     """Tests for URL building."""
 
@@ -204,6 +206,7 @@ class TestURLBuilder:
 # ─────────────────────────────────────────────
 #  Parsing Tests
 # ─────────────────────────────────────────────
+
 
 class TestParsing:
     """Tests for HTML parsing."""
@@ -237,13 +240,14 @@ class TestParsing:
 
     def test_has_next_page_false(self):
         """Test detection of last page."""
-        html = '<html><p>No more results</p></html>'
+        html = "<html><p>No more results</p></html>"
         assert has_next_page(html) is False
 
 
 # ─────────────────────────────────────────────
 #  Detail Fetching Tests
 # ─────────────────────────────────────────────
+
 
 class TestDetailFetching:
     """Tests for detail page fetching."""
@@ -255,16 +259,13 @@ class TestDetailFetching:
             "lot": "762279",
             "sale": "601279",
             "title": "Montre Rolex",
-            "url": "https://gcsurplus.ca/test"
+            "url": "https://gcsurplus.ca/test",
         }
 
-        responses.get(
-            "https://gcsurplus.ca/test",
-            body=sample_detail_html,
-            status=200
-        )
+        responses.get("https://gcsurplus.ca/test", body=sample_detail_html, status=200)
 
         import requests
+
         session = requests.Session()
         item = fetch_item_detail(ref, session)
 
@@ -283,15 +284,13 @@ class TestDetailFetching:
             "lot": "762279",
             "sale": "601279",
             "title": "Montre Rolex",
-            "url": "https://gcsurplus.ca/test"
+            "url": "https://gcsurplus.ca/test",
         }
 
-        responses.get(
-            "https://gcsurplus.ca/test",
-            status=500
-        )
+        responses.get("https://gcsurplus.ca/test", status=500)
 
         import requests
+
         session = requests.Session()
         item = fetch_item_detail(ref, session)
 
@@ -304,6 +303,7 @@ class TestDetailFetching:
 # ─────────────────────────────────────────────
 #  Discord Tests
 # ─────────────────────────────────────────────
+
 
 class TestDiscord:
     """Tests for Discord notification functionality."""
@@ -337,7 +337,7 @@ class TestDiscord:
             condition="Good",
             image_url="",
             all_image_urls=[],
-            url="https://test.com"
+            url="https://test.com",
         )
 
         embed = build_embed(item, sample_search)
@@ -346,15 +346,10 @@ class TestDiscord:
     @responses.activate
     def test_send_discord_notification_success(self, sample_item, sample_search):
         """Test successful Discord notification."""
-        responses.post(
-            "https://discord.com/api/webhooks/test",
-            status=204
-        )
+        responses.post("https://discord.com/api/webhooks/test", status=204)
 
         result = send_discord_notification(
-            "https://discord.com/api/webhooks/test",
-            sample_item,
-            sample_search
+            "https://discord.com/api/webhooks/test", sample_item, sample_search
         )
 
         assert result is True
@@ -366,13 +361,11 @@ class TestDiscord:
         responses.post(
             "https://discord.com/api/webhooks/test",
             status=400,
-            body='{"message": "Invalid webhook"}'
+            body='{"message": "Invalid webhook"}',
         )
 
         result = send_discord_notification(
-            "https://discord.com/api/webhooks/test",
-            sample_item,
-            sample_search
+            "https://discord.com/api/webhooks/test", sample_item, sample_search
         )
 
         assert result is False
@@ -387,11 +380,14 @@ class TestDiscord:
 #  Integration Tests
 # ─────────────────────────────────────────────
 
+
 class TestIntegration:
     """Integration tests for main workflow."""
 
     @responses.activate
-    def test_run_once_finds_new_items(self, tmp_path, sample_config, sample_listing_html, sample_detail_html):
+    def test_run_once_finds_new_items(
+        self, tmp_path, sample_config, sample_listing_html, sample_detail_html
+    ):
         """Test that run_once finds and processes new items."""
         # Setup files
         config_file = tmp_path / "config.json"
@@ -400,35 +396,35 @@ class TestIntegration:
 
         # Mock HTTP responses
         responses.get(
-            "https://gcsurplus.ca/mn-fra.cfm",
-            body=sample_listing_html,
-            status=200
+            "https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200
         )
         responses.get(
             "https://gcsurplus.ca/mn-fra.cfm?snc=wfsav&scn=601279&lcn=762279&lct=L",
             body=sample_detail_html,
-            status=200
+            status=200,
         )
         responses.get(
             "https://gcsurplus.ca/mn-fra.cfm?snc=wfsav&scn=601280&lcn=762280&lct=L",
             body=sample_detail_html,
-            status=200
+            status=200,
         )
-        responses.post(
-            "https://discord.com/api/webhooks/test",
-            status=204
-        )
+        responses.post("https://discord.com/api/webhooks/test", status=204)
 
-        with patch("scraper.CONFIG_FILE", config_file), \
-             patch("scraper.SEEN_FILE", seen_file):
+        with (
+            patch("scraper.CONFIG_FILE", config_file),
+            patch("scraper.SEEN_FILE", seen_file),
+        ):
             import requests
+
             session = requests.Session()
             count = run_once(sample_config, session)
 
             assert count == 2  # Two new items found
 
     @responses.activate
-    def test_run_once_skips_seen_items(self, tmp_path, sample_config, sample_listing_html):
+    def test_run_once_skips_seen_items(
+        self, tmp_path, sample_config, sample_listing_html
+    ):
         """Test that run_once skips already seen items."""
         config_file = tmp_path / "config.json"
         seen_file = tmp_path / "seen_items.json"
@@ -436,14 +432,15 @@ class TestIntegration:
         seen_file.write_text(json.dumps({"seen": ["762279", "762280"]}))
 
         responses.get(
-            "https://gcsurplus.ca/mn-fra.cfm",
-            body=sample_listing_html,
-            status=200
+            "https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200
         )
 
-        with patch("scraper.CONFIG_FILE", config_file), \
-             patch("scraper.SEEN_FILE", seen_file):
+        with (
+            patch("scraper.CONFIG_FILE", config_file),
+            patch("scraper.SEEN_FILE", seen_file),
+        ):
             import requests
+
             session = requests.Session()
             count = run_once(sample_config, session)
 
@@ -453,6 +450,7 @@ class TestIntegration:
 # ─────────────────────────────────────────────
 #  Dataclass Tests
 # ─────────────────────────────────────────────
+
 
 class TestDataclasses:
     """Tests for dataclass structures."""
@@ -475,7 +473,7 @@ class TestDataclasses:
             condition="Good",
             image_url="https://test.com/img.jpg",
             all_image_urls=["https://test.com/img.jpg"],
-            url="https://test.com"
+            url="https://test.com",
         )
 
         assert item.lot_number == "123"
@@ -485,9 +483,7 @@ class TestDataclasses:
     def test_search_config_creation(self):
         """Test SearchConfig dataclass creation."""
         search = SearchConfig(
-            keyword="Test",
-            category_code="9800",
-            category_name="Test Category"
+            keyword="Test", category_code="9800", category_name="Test Category"
         )
 
         assert search.keyword == "Test"
@@ -498,23 +494,22 @@ class TestDataclasses:
 #  Timezone/Hours Tests
 # ─────────────────────────────────────────────
 
+
 class TestHoursOfOperation:
     """Tests for off-hours pause logic."""
 
-    @patch('scraper.datetime')
+    @patch("scraper.datetime")
     def test_skips_during_off_hours(self, mock_datetime):
         """Test that scraper skips during midnight-6AM."""
         # Mock current time as 3 AM
         mock_datetime.now.return_value = MagicMock(hour=3)
         mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
-        from scraper import run_loop
-
         # This should sleep until 6 AM
         # We can't easily test the full loop, but we verify the hour check logic
         assert 0 <= 3 < 6  # Off-hours check
 
-    @patch('scraper.datetime')
+    @patch("scraper.datetime")
     def test_runs_during_active_hours(self, mock_datetime):
         """Test that scraper runs during active hours."""
         # Mock current time as 10 AM
