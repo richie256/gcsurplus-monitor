@@ -461,7 +461,7 @@ def build_embed(item: Item, search: SearchConfig) -> dict:
             "text": f"GCSurplus Monitor  •  Lot {item.lot_number}  •  {item.found_at[:19].replace('T', ' ')}",
             "icon_url": "https://gcsurplus.ca/assets/favicon.ico",
         },
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now().astimezone().isoformat(),
     }
 
     # Image principale en grand (image=) — Discord l'affiche pleine largeur
