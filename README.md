@@ -79,28 +79,60 @@ python scraper.py --test-discord
 
 ### Docker
 
-```bash
-# Construire l'image
-docker build -t gcsurplus-monitor .
+#### Build local image
 
-# Surveillance continue
+```bash
+# Construire l'image localement
+docker build -t gcsurplus-monitor .
+```
+
+#### Using GitHub Container Registry (ghcr.io)
+
+**First time setup (login):**
+```bash
+# Connecter avec votre compte GitHub
+echo "TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
+
+# Ou utiliser gh CLI avec:
+gh auth login
+```
+
+**Surveillance continue:**
+```bash
+# Utiliser l'image publique de GitHub Packages
 docker run -d --name gcsurplus \
   -v $(pwd)/config.json:/app/config.json:ro \
   -v $(pwd)/seen_items.json:/app/seen_items.json \
   -v $(pwd)/scraper.log:/app/scraper.log \
   -e TZ=America/Toronto \
   --restart unless-stopped \
-  gcsurplus-monitor
+  ghcr.io/richie256/gcsurplus-monitor:latest
+```
 
-# Vérification unique
-docker run --rm -v $(pwd)/config.json:/app/config.json:ro gcsurplus-monitor
+**Build and push to GitHub Packages:**
+```bash
+# Tag de version
+docker tag gcsurplus-monitor ghcr.io/richie256/gcsurplus-monitor:latest
+docker tag gcsurplus-monitor ghcr.io/richie256/gcsurplus-monitor:v1.0.0
 
-# Test Discord
-docker run --rm -v $(pwd)/config.json:/app/config.json:ro gcsurplus-monitor \
-  python scraper.py --test-discord
+# Puscher vers GitHub Packages
+docker push ghcr.io/richie256/gcsurplus-monitor:latest
+docker push ghcr.io/richie256/gcsurplus-monitor:v1.0.0
+```
+
+**Vérification unique:**
+```bash
+docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python scraper.py
+```
+
+**Test Discord:**
+```bash
+docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python scraper.py --test-discord
 ```
 
 ### Docker Compose
+
+#### Using local image
 
 ```bash
 # Démarrer la surveillance continue
@@ -117,6 +149,33 @@ docker compose run --rm test-discord
 
 # Vérification unique (one-shot)
 docker compose run --rm once
+```
+
+#### Using GitHub Container Registry image
+
+**Setup GitHub auth (first time only):**
+```bash
+docker login ghcr.io -u USERNAME -p TOKEN
+# ou avec gh CLI: gh auth login
+```
+
+**Update docker-compose.yml:**
+```yaml
+services:
+  gcsurplus:
+    image: ghcr.io/richie256/gcsurplus-monitor:latest
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./seen_items.json:/app/seen_items.json
+      - ./scraper.log:/app/scraper.log
+    environment:
+      - TZ=America/Toronto
+```
+
+**Run:**
+```bash
+docker compose up -d
 ```
 
 ## Fichiers générés
