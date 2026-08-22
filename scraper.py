@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlencode, urljoin, parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -271,9 +271,7 @@ def fetch_item_detail(ref: dict, session: requests.Session) -> Item:
         resp = session.get(ref["url"], headers=HEADERS, timeout=30)
         resp.raise_for_status()
     except requests.RequestException as e:
-        log.warning(
-            "Impossible de charger la page détail pour lot %s: %s", ref["lot"], e
-        )
+        log.warning("Impossible de charger la page détail pour lot %s: %s", ref["lot"], e)
         return _minimal_item(ref)
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -309,9 +307,7 @@ def fetch_item_detail(ref: dict, session: requests.Session) -> Item:
     def grab_inline(labels, default="N/D"):
         """Extrait valeur sur la même ligne ou la suivante."""
         for label in labels:
-            m = re.search(
-                rf"{re.escape(label)}\s*[:\-]?\s*([^\n]+)", raw, re.IGNORECASE
-            )
+            m = re.search(rf"{re.escape(label)}\s*[:\-]?\s*([^\n]+)", raw, re.IGNORECASE)
             if m:
                 val = m.group(1).strip().strip(":")
                 if val:
@@ -321,9 +317,7 @@ def fetch_item_detail(ref: dict, session: requests.Session) -> Item:
     # ── Champs ──────────────────────────────
     title = grab_inline(["Article :"], ref["title"]) or ref["title"]
     current_bid = grab_inline(["Soumission courante", "Montant des achats"], "N/D")
-    min_bid = grab_inline(
-        ["Enchère min", "Soumission minimale", "Prochaine soumission minimale"], "N/D"
-    )
+    min_bid = grab_inline(["Enchère min", "Soumission minimale", "Prochaine soumission minimale"], "N/D")
     close_date = grab_inline(["Date de clôture :"], "N/D")
     time_left = grab_inline(["Restant :"], "N/D")
     location = grab_inline(["Emplacement  :", "Emplacement :"], "N/D")
@@ -438,27 +432,19 @@ def build_embed(item: Item, search: SearchConfig) -> dict:
             }
         )
     if item.min_bid and item.min_bid != "N/D":
-        fields.append(
-            {"name": "📈 Prochaine mise min.", "value": item.min_bid, "inline": True}
-        )
+        fields.append({"name": "📈 Prochaine mise min.", "value": item.min_bid, "inline": True})
 
     fields.append({"name": "\u200b", "value": "\u200b", "inline": False})  # séparateur
 
     if item.close_date and item.close_date != "N/D":
-        fields.append(
-            {"name": "📅 Date de clôture", "value": item.close_date, "inline": True}
-        )
+        fields.append({"name": "📅 Date de clôture", "value": item.close_date, "inline": True})
     if item.time_left and item.time_left != "N/D":
-        fields.append(
-            {"name": "⏳ Temps restant", "value": item.time_left, "inline": True}
-        )
+        fields.append({"name": "⏳ Temps restant", "value": item.time_left, "inline": True})
 
     fields.append({"name": "\u200b", "value": "\u200b", "inline": False})  # séparateur
 
     if item.location and item.location != "N/D":
-        fields.append(
-            {"name": "📍 Emplacement", "value": item.location, "inline": True}
-        )
+        fields.append({"name": "📍 Emplacement", "value": item.location, "inline": True})
     if item.quantity and item.quantity != "N/D":
         fields.append({"name": "📦 Quantité", "value": item.quantity, "inline": True})
 
@@ -508,9 +494,7 @@ def build_embed(item: Item, search: SearchConfig) -> dict:
     return embed
 
 
-def send_discord_notification(
-    webhook_url: str, item: Item, search: SearchConfig
-) -> bool:
+def send_discord_notification(webhook_url: str, item: Item, search: SearchConfig) -> bool:
     """Envoie une notification Discord via webhook."""
     if not webhook_url:
         log.warning("Webhook Discord non configuré — notification ignorée.")
@@ -571,10 +555,7 @@ def send_discord_test(webhook_url: str) -> None:
             "https://gcsurplus.ca/lotImages/2988960.jpeg",
             "https://gcsurplus.ca/lotImages/2988961.jpeg",
         ],
-        url=(
-            "https://gcsurplus.ca/mn-fra.cfm?snc=wfsav&sc=enc-bid"
-            "&scn=601279&lcn=762279&lct=L"
-        ),
+        url=("https://gcsurplus.ca/mn-fra.cfm?snc=wfsav&sc=enc-bid&scn=601279&lcn=762279&lct=L"),
     )
     fake_search = SearchConfig(
         keyword="Montre",
@@ -594,18 +575,14 @@ def run_once(config: dict, session: requests.Session) -> int:
     seen = load_seen()
     new_count = 0
 
-    searches = [
-        SearchConfig(**s) for s in config.get("searches", []) if s.get("enabled", True)
-    ]
+    searches = [SearchConfig(**s) for s in config.get("searches", []) if s.get("enabled", True)]
 
     if not searches:
         log.warning("Aucune recherche activée dans config.json.")
         return 0
 
     for search in searches:
-        log.info(
-            "🔍 mot-clé='%s'  catégorie='%s'", search.keyword, search.category_code
-        )
+        log.info("🔍 mot-clé='%s'  catégorie='%s'", search.keyword, search.category_code)
 
         refs = scrape_listing(search.category_code, search.keyword, session)
         log.info("→ %d article(s) correspondant(s) trouvé(s).", len(refs))
@@ -627,10 +604,7 @@ def run_once(config: dict, session: requests.Session) -> int:
                 send_discord_notification(webhook_url, item, search)
                 time.sleep(1)
             else:
-                log.warning(
-                    "Webhook Discord non configuré — ajoutez "
-                    "'discord_webhook_url' dans config.json."
-                )
+                log.warning("Webhook Discord non configuré — ajoutez 'discord_webhook_url' dans config.json.")
 
             time.sleep(1)  # politesse entre les pages détail
 
@@ -670,9 +644,7 @@ def run_loop(config: dict) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Moniteur GCSurplus avec notifications Discord"
-    )
+    parser = argparse.ArgumentParser(description="Moniteur GCSurplus avec notifications Discord")
     parser.add_argument(
         "--once",
         action="store_true",
@@ -690,9 +662,7 @@ def main() -> None:
     if args.test_discord:
         webhook_url = config.get("discord_webhook_url", "")
         if not webhook_url:
-            print(
-                "⚠️  Configurez 'discord_webhook_url' dans config.json avant de tester."
-            )
+            print("⚠️  Configurez 'discord_webhook_url' dans config.json avant de tester.")
             sys.exit(1)
         send_discord_test(webhook_url)
         print("✅ Message de test envoyé !")
