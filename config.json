@@ -1,0 +1,12 @@
+{
+  "discord_webhook_url": "",
+  "check_interval_minutes": 30,
+  "searches": [
+    {
+      "keyword": "Montre",
+      "category_code": "9800",
+      "category_name": "9800 - Bijoux, pièces de collection, oeuvres d'art et artisanat, et plus",
+      "enabled": true
+    }
+  ]
+}

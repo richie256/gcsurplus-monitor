@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+.Python
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# Local config and state (will be mounted at runtime)
+config.json
+seen_items.json
+scraper.log
+
+# Documentation
+CLAUDE.md
+README.md

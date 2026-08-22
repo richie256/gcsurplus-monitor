@@ -1,0 +1,30 @@
+services:
+  gcsurplus-monitor:
+    build: .
+    container_name: gcsurplus-monitor
+    restart: unless-stopped
+    environment:
+      - TZ=America/Toronto
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./seen_items.json:/app/seen_items.json
+      - ./scraper.log:/app/scraper.log
+    command: python scraper.py
+
+  # One-off commands (use: docker compose run --rm <service>)
+  test-discord:
+    build: .
+    environment:
+      - TZ=America/Toronto
+    volumes:
+      - ./config.json:/app/config.json:ro
+    command: python scraper.py --test-discord
+
+  once:
+    build: .
+    environment:
+      - TZ=America/Toronto
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./seen_items.json:/app/seen_items.json
+    command: python scraper.py --once

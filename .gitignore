@@ -1,0 +1,12 @@
+CLAUDE.md
+
+# Runtime files
+scraper.log
+seen_items.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
