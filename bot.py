@@ -15,6 +15,7 @@ from flask import Flask, jsonify, request
 try:
     from nacl.exceptions import BadSignatureError
     from nacl.signing import VerifyKey
+
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -58,84 +59,86 @@ def verify_discord_signature(public_key: str, data: bytes, signature: str, times
         return False
 
 
-@app.route('/interactions', methods=['POST'])
+@app.route("/interactions", methods=["POST"])
 def handle_interaction():
     """Handle incoming Discord interaction."""
     # Verify signature
-    signature = request.headers.get('X-Signature-Ed25519', '')
-    timestamp = request.headers.get('X-Signature-Timestamp', '')
+    signature = request.headers.get("X-Signature-Ed25519", "")
+    timestamp = request.headers.get("X-Signature-Timestamp", "")
 
     if PUBLIC_KEY and not verify_discord_signature(PUBLIC_KEY, signature, timestamp, request.data):
-        return jsonify({'error': 'Invalid signature'}), 401
+        return jsonify({"error": "Invalid signature"}), 401
 
     data = request.json
-    interaction_type = data.get('type')
+    interaction_type = data.get("type")
 
     # PING - Discord verification
     if interaction_type == 1:
-        return jsonify({'type': 1})
+        return jsonify({"type": 1})
 
     # APPLICATION_COMMAND
     if interaction_type == 2:
-        return jsonify({'type': 4, 'data': {'content': 'Pong!'}})
+        return jsonify({"type": 4, "data": {"content": "Pong!"}})
 
     # MESSAGE_COMPONENT (button click)
     if interaction_type == 3:
         return handle_button_click(data)
 
-    return jsonify({'error': 'Unknown interaction type'}), 400
+    return jsonify({"error": "Unknown interaction type"}), 400
 
 
 def handle_button_click(data: dict) -> tuple:
     """Handle button click interaction."""
-    custom_id = data['data']['custom_id']
-    user_id = data['member']['user']['id']
-    user_name = data['member']['user'].get('username', 'Unknown')
-    message = data.get('message', {})
+    custom_id = data["data"]["custom_id"]
+    user_id = data["member"]["user"]["id"]
+    user_name = data["member"]["user"].get("username", "Unknown")
+    message = data.get("message", {})
 
     log.info(f"Button clicked: {custom_id} by user {user_name} ({user_id})")
 
     # Handle "Interested" button
-    if custom_id.startswith('interested_'):
-        lot_number = custom_id.replace('interested_', '')
+    if custom_id.startswith("interested_"):
+        lot_number = custom_id.replace("interested_", "")
 
         # Check if already tracked
         existing = get_tracked_item(lot_number)
         if existing:
-            return jsonify({
-                'type': 4,
-                'data': {
-                    'content': "⚠️ Item already tracked by another user.",
-                    'flags': 64  # Ephemeral - only visible to user
+            return jsonify(
+                {
+                    "type": 4,
+                    "data": {
+                        "content": "⚠️ Item already tracked by another user.",
+                        "flags": 64,  # Ephemeral - only visible to user
+                    },
                 }
-            })
+            )
 
         # Extract item data from the message embed
-        embed = message.get('embeds', [{}])[0] if message.get('embeds') else {}
-        fields = {f['name']: f['value'] for f in embed.get('fields', [])}
+        embed = message.get("embeds", [{}])[0] if message.get("embeds") else {}
+        fields = {f["name"]: f["value"] for f in embed.get("fields", [])}
 
         # Extract URL from embed
-        item_url = embed.get('url', '')
+        item_url = embed.get("url", "")
 
         # Create tracked item from message data
         # We need to reconstruct enough data to track
         tracked = TrackedItem(
             lot_number=lot_number,
-            sale_number='',  # Will be filled by tracker
-            title=embed.get('title', '').replace('🆕  ', ''),
+            sale_number="",  # Will be filled by tracker
+            title=embed.get("title", "").replace("🆕  ", ""),
             url=item_url,
-            current_bid=fields.get('💰 Mise actuelle', 'N/D').replace('**', ''),
-            min_bid=fields.get('📈 Prochaine mise min.', 'N/D'),
-            close_date=fields.get('📅 Date de clôture', 'N/D'),
-            time_left=fields.get('⏳ Temps restant', 'N/D'),
-            location=fields.get('📍 Emplacement', 'N/D'),
-            quantity=fields.get('📦 Quantité', 'N/D'),
-            sale_type=fields.get('🏷️ Type de vente', 'N/D'),
-            condition=fields.get('🔍 État', 'N/D'),
-            image_url=embed.get('image', {}).get('url', ''),
-            all_image_urls=[embed.get('image', {}).get('url', '')] if embed.get('image') else [],
-            sale_ref=fields.get('🔢 Réf. Vente / Lot', 'N/D').replace('`', ''),
-            description='',
+            current_bid=fields.get("💰 Mise actuelle", "N/D").replace("**", ""),
+            min_bid=fields.get("📈 Prochaine mise min.", "N/D"),
+            close_date=fields.get("📅 Date de clôture", "N/D"),
+            time_left=fields.get("⏳ Temps restant", "N/D"),
+            location=fields.get("📍 Emplacement", "N/D"),
+            quantity=fields.get("📦 Quantité", "N/D"),
+            sale_type=fields.get("🏷️ Type de vente", "N/D"),
+            condition=fields.get("🔍 État", "N/D"),
+            image_url=embed.get("image", {}).get("url", ""),
+            all_image_urls=[embed.get("image", {}).get("url", "")] if embed.get("image") else [],
+            sale_ref=fields.get("🔢 Réf. Vente / Lot", "N/D").replace("`", ""),
+            description="",
             user_id=user_id,
         )
 
@@ -144,45 +147,32 @@ def handle_button_click(data: dict) -> tuple:
 
         log.info(f"✅ Item {lot_number} tracked by user {user_id}")
 
-        return jsonify({
-            'type': 4,
-            'data': {
-                'content': "✅ Tracking this item! I'll notify you of bid changes and before auction close.",
-                'flags': 64  # Ephemeral
+        return jsonify(
+            {
+                "type": 4,
+                "data": {
+                    "content": "✅ Tracking this item! I'll notify you of bid changes and before auction close.",
+                    "flags": 64,  # Ephemeral
+                },
             }
-        })
+        )
 
     # Handle "Untrack" button (optional future feature)
-    if custom_id.startswith('untrack_'):
-        lot_number = custom_id.replace('untrack_', '')
+    if custom_id.startswith("untrack_"):
+        lot_number = custom_id.replace("untrack_", "")
         from storage import untrack_item
 
         existing = get_tracked_item(lot_number)
         if existing and existing.user_id == user_id:
             untrack_item(lot_number)
-            return jsonify({
-                'type': 4,
-                'data': {
-                    'content': f"✅ Stopped tracking item {lot_number}.",
-                    'flags': 64
-                }
-            })
+            return jsonify({"type": 4, "data": {"content": f"✅ Stopped tracking item {lot_number}.", "flags": 64}})
         else:
-            return jsonify({
-                'type': 4,
-                'data': {
-                    'content': "⚠️ You are not tracking this item.",
-                    'flags': 64
-                }
-            })
+            return jsonify({"type": 4, "data": {"content": "⚠️ You are not tracking this item.", "flags": 64}})
 
-    return jsonify({
-        'type': 4,
-        'data': {'content': 'Unknown button action', 'flags': 64}
-    })
+    return jsonify({"type": 4, "data": {"content": "Unknown button action", "flags": 64}})
 
 
-def start_bot_server(config: dict, host: str = '0.0.0.0', port: int = 8080) -> threading.Thread:
+def start_bot_server(config: dict, host: str = "0.0.0.0", port: int = 8080) -> threading.Thread:
     """
     Start the Flask server in a background thread.
 
@@ -196,9 +186,9 @@ def start_bot_server(config: dict, host: str = '0.0.0.0', port: int = 8080) -> t
     """
     global PUBLIC_KEY, APPLICATION_ID, WEBHOOK_URL
 
-    PUBLIC_KEY = config.get('discord_public_key', '')
-    APPLICATION_ID = config.get('discord_application_id', '')
-    WEBHOOK_URL = config.get('discord_webhook_url', '')
+    PUBLIC_KEY = config.get("discord_public_key", "")
+    APPLICATION_ID = config.get("discord_application_id", "")
+    WEBHOOK_URL = config.get("discord_webhook_url", "")
 
     if not PUBLIC_KEY and CRYPTO_AVAILABLE:
         log.warning("No Discord public key configured - signature verification disabled")
@@ -218,7 +208,7 @@ def start_bot_server(config: dict, host: str = '0.0.0.0', port: int = 8080) -> t
 #  CLI for testing
 # ─────────────────────────────────────────────
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -237,13 +227,14 @@ if __name__ == '__main__':
     else:
         config = {}
 
-    port = config.get('interaction_endpoint_port', 8080)
+    port = config.get("interaction_endpoint_port", 8080)
     start_bot_server(config, port=port)
 
     # Keep main thread alive
     try:
         while True:
             import time
+
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n👋 Shutting down...")

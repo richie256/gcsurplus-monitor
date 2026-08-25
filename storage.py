@@ -88,12 +88,7 @@ def load_tracked_items() -> dict[str, TrackedItem]:
 
 def save_tracked_items(tracked: dict[str, TrackedItem]) -> None:
     """Save tracked items to tracked_items.json."""
-    data = {
-        "tracked": {
-            lot_number: item.to_dict()
-            for lot_number, item in tracked.items()
-        }
-    }
+    data = {"tracked": {lot_number: item.to_dict() for lot_number, item in tracked.items()}}
     save_json(TRACKED_FILE, data)
 
 

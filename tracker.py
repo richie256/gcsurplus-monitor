@@ -28,11 +28,22 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 FRENCH_MONTHS = {
-    'janvier': 1, 'février': 2, 'mars': 3, 'avril': 4,
-    'mai': 5, 'juin': 6, 'juillet': 7, 'août': 8,
-    'septembre': 9, 'octobre': 10, 'novembre': 11, 'décembre': 12,
+    "janvier": 1,
+    "février": 2,
+    "mars": 3,
+    "avril": 4,
+    "mai": 5,
+    "juin": 6,
+    "juillet": 7,
+    "août": 8,
+    "septembre": 9,
+    "octobre": 10,
+    "novembre": 11,
+    "décembre": 12,
     # Accented variants
-    'fevrier': 2, 'aout': 8, 'decembre': 12,
+    "fevrier": 2,
+    "aout": 8,
+    "decembre": 12,
 }
 
 # ─────────────────────────────────────────────
@@ -40,15 +51,16 @@ FRENCH_MONTHS = {
 # ─────────────────────────────────────────────
 
 ALERT_THRESHOLDS = [
-    ('alert_sent_24h', timedelta(hours=24), '24 hours'),
-    ('alert_sent_1h', timedelta(hours=1), '1 hour'),
-    ('alert_sent_15m', timedelta(minutes=15), '15 minutes'),
+    ("alert_sent_24h", timedelta(hours=24), "24 hours"),
+    ("alert_sent_1h", timedelta(hours=1), "1 hour"),
+    ("alert_sent_15m", timedelta(minutes=15), "15 minutes"),
 ]
 
 
 # ─────────────────────────────────────────────
 #  Close Date Parsing
 # ─────────────────────────────────────────────
+
 
 def parse_close_date(close_date_str: str) -> datetime | None:
     """
@@ -57,12 +69,12 @@ def parse_close_date(close_date_str: str) -> datetime | None:
     Format: "25-août-2026 @ 09h00" or similar
     Returns: datetime object or None if parsing fails
     """
-    if not close_date_str or close_date_str == 'N/D':
+    if not close_date_str or close_date_str == "N/D":
         return None
 
     # Pattern: DD-Month-YYYY @ HHhMM
     # Examples: "25-août-2026 @ 09h00", "1-septembre-2026 @ 14h30"
-    pattern = r'(\d{1,2})-([a-zéû]+)-(\d{4})\s*@\s*(\d{1,2})h(\d{2})'
+    pattern = r"(\d{1,2})-([a-zéû]+)-(\d{4})\s*@\s*(\d{1,2})h(\d{2})"
     match = re.search(pattern, close_date_str.lower(), re.IGNORECASE)
 
     if not match:
@@ -107,12 +119,13 @@ def format_time_remaining(delta: timedelta) -> str:
     if minutes > 0 and days == 0:  # Only show minutes if < 1 day
         parts.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
 
-    return ' '.join(parts) if parts else "Less than 1 minute"
+    return " ".join(parts) if parts else "Less than 1 minute"
 
 
 # ─────────────────────────────────────────────
 #  Bid Price Parsing
 # ─────────────────────────────────────────────
+
 
 def parse_bid_amount(bid_str: str) -> float | None:
     """
@@ -120,11 +133,11 @@ def parse_bid_amount(bid_str: str) -> float | None:
 
     Examples: "$6,200.00" -> 6200.0, "$100" -> 100.0
     """
-    if not bid_str or bid_str == 'N/D':
+    if not bid_str or bid_str == "N/D":
         return None
 
     # Remove currency symbol and commas
-    cleaned = bid_str.replace('$', '').replace(',', '').strip()
+    cleaned = bid_str.replace("$", "").replace(",", "").strip()
 
     try:
         return float(cleaned)
@@ -136,6 +149,7 @@ def parse_bid_amount(bid_str: str) -> float | None:
 #  Item Re-scraping
 # ─────────────────────────────────────────────
 
+
 def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> dict | None:
     """
     Re-scrape item page to get current bid and time left.
@@ -146,20 +160,20 @@ def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> d
 
     try:
         ref = {
-            'lot': item.lot_number,
-            'sale': item.sale_number,
-            'title': item.title,
-            'url': item.url,
+            "lot": item.lot_number,
+            "sale": item.sale_number,
+            "title": item.title,
+            "url": item.url,
         }
 
         # Use existing scraper function
         updated = fetch_item_detail(ref, session)
 
         return {
-            'current_bid': updated.current_bid,
-            'min_bid': updated.min_bid,
-            'close_date': updated.close_date,
-            'time_left': updated.time_left,
+            "current_bid": updated.current_bid,
+            "min_bid": updated.min_bid,
+            "close_date": updated.close_date,
+            "time_left": updated.time_left,
         }
     except Exception as e:
         log.error(f"Failed to fetch update for item {item.lot_number}: {e}")
@@ -170,6 +184,7 @@ def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> d
 #  Alert Checking
 # ─────────────────────────────────────────────
 
+
 def check_alert_needed(item: TrackedItem, now: datetime) -> tuple[bool, str, str]:
     """
     Check if an alert should be sent for this item.
@@ -178,13 +193,13 @@ def check_alert_needed(item: TrackedItem, now: datetime) -> tuple[bool, str, str
     """
     close_dt = parse_close_date(item.close_date)
     if not close_dt:
-        return False, '', ''
+        return False, "", ""
 
     time_remaining = close_dt - now
 
     # Check if auction has ended
     if time_remaining.total_seconds() <= 0:
-        return True, 'ended', f"🔨 Auction ended for **{item.title}**"
+        return True, "ended", f"🔨 Auction ended for **{item.title}**"
 
     # Check thresholds from longest to shortest
     for alert_flag, threshold, label in ALERT_THRESHOLDS:
@@ -193,18 +208,23 @@ def check_alert_needed(item: TrackedItem, now: datetime) -> tuple[bool, str, str
             if getattr(item, alert_flag, False):
                 continue
 
-            return True, alert_flag, (
-                f"⏰ **{label} remaining** for [{item.title}]({item.url})\n"
-                f"Current bid: **{item.current_bid}**\n"
-                f"Time left: {format_time_remaining(time_remaining)}"
+            return (
+                True,
+                alert_flag,
+                (
+                    f"⏰ **{label} remaining** for [{item.title}]({item.url})\n"
+                    f"Current bid: **{item.current_bid}**\n"
+                    f"Time left: {format_time_remaining(time_remaining)}"
+                ),
             )
 
-    return False, '', ''
+    return False, "", ""
 
 
 # ─────────────────────────────────────────────
 #  Main Tracking Loop
 # ─────────────────────────────────────────────
+
 
 def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
     """
@@ -229,36 +249,37 @@ def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
 
         # Check for bid changes
         old_bid = parse_bid_amount(item.current_bid)
-        new_bid = parse_bid_amount(updates['current_bid'])
+        new_bid = parse_bid_amount(updates["current_bid"])
 
         if new_bid and old_bid and new_bid > old_bid:
             # Record bid history
-            bid_entry = BidHistory(
-                bid=updates['current_bid'],
-                timestamp=now.isoformat()
+            bid_entry = BidHistory(bid=updates["current_bid"], timestamp=now.isoformat())
+            item.bid_history.append(
+                bid_entry.to_dict()
+                if hasattr(bid_entry, "to_dict")
+                else {
+                    "bid": bid_entry.bid,
+                    "timestamp": bid_entry.timestamp,
+                }
             )
-            item.bid_history.append(bid_entry.to_dict() if hasattr(bid_entry, 'to_dict') else {
-                'bid': bid_entry.bid,
-                'timestamp': bid_entry.timestamp,
-            })
 
             # Send bid update notification
-            send_bid_notification(item, updates['current_bid'], old_bid, webhook_url)
+            send_bid_notification(item, updates["current_bid"], old_bid, webhook_url)
             notifications_sent += 1
 
             # Update item
-            item.current_bid = updates['current_bid']
+            item.current_bid = updates["current_bid"]
 
         # Update other fields
-        item.min_bid = updates['min_bid']
-        item.close_date = updates['close_date']
-        item.time_left = updates['time_left']
+        item.min_bid = updates["min_bid"]
+        item.close_date = updates["close_date"]
+        item.time_left = updates["time_left"]
         item.last_checked = now.isoformat()
 
         # Check for alerts
         should_alert, alert_type, alert_msg = check_alert_needed(item, now)
         if should_alert:
-            if alert_type == 'ended':
+            if alert_type == "ended":
                 # Auction ended - remove from tracking
                 send_auction_ended_notification(item, webhook_url)
                 untrack_item(lot_number)
@@ -287,8 +308,8 @@ def send_bid_notification(item: TrackedItem, new_bid: str, old_bid: float, webho
     )
 
     payload = {
-        'username': 'GCSurplus Tracker 📊',
-        'content': content,
+        "username": "GCSurplus Tracker 📊",
+        "content": content,
     }
 
     try:
@@ -303,8 +324,8 @@ def send_alert_notification(item: TrackedItem, alert_msg: str, webhook_url: str)
     import requests
 
     payload = {
-        'username': 'GCSurplus Tracker ⏰',
-        'content': f"{alert_msg}\n<@{item.user_id}>",
+        "username": "GCSurplus Tracker ⏰",
+        "content": f"{alert_msg}\n<@{item.user_id}>",
     }
 
     try:
@@ -318,16 +339,11 @@ def send_auction_ended_notification(item: TrackedItem, webhook_url: str) -> None
     """Send notification that auction has ended."""
     import requests
 
-    content = (
-        f"🔨 **Auction ended!**\n"
-        f"[{item.title}]({item.url})\n"
-        f"Final bid: **{item.current_bid}**\n"
-        f"<@{item.user_id}>"
-    )
+    content = f"🔨 **Auction ended!**\n[{item.title}]({item.url})\nFinal bid: **{item.current_bid}**\n<@{item.user_id}>"
 
     payload = {
-        'username': 'GCSurplus Tracker 🔨',
-        'content': content,
+        "username": "GCSurplus Tracker 🔨",
+        "content": content,
     }
 
     try:
@@ -341,7 +357,7 @@ def send_auction_ended_notification(item: TrackedItem, webhook_url: str) -> None
 #  Testing
 # ─────────────────────────────────────────────
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
 
     # Test close date parsing

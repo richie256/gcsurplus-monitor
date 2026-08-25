@@ -469,7 +469,7 @@ def send_discord_notification(webhook_url: str, item: Item, search: SearchConfig
                         "label": "👁️ Interested",
                         "custom_id": f"interested_{item.lot_number}",
                     }
-                ]
+                ],
             }
         ]
 
@@ -589,6 +589,7 @@ def run_loop(config: dict) -> None:
     if application_id:
         try:
             from bot import start_bot_server
+
             start_bot_server(config)
             log.info("✅ Discord interaction server started")
         except ImportError as e:
@@ -602,6 +603,7 @@ def run_loop(config: dict) -> None:
     # Import tracker
     try:
         from tracker import check_tracked_items
+
         tracker_available = True
     except ImportError as e:
         log.warning(f"Could not import tracker: {e}")

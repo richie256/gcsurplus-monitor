@@ -10,6 +10,7 @@ from datetime import datetime
 @dataclass
 class Item:
     """Represents a scraped item from GCSurplus."""
+
     lot_number: str
     sale_number: str
     sale_ref: str  # ex: "R6TO0018662 - 6TO016165-EP976-JG"
@@ -32,6 +33,7 @@ class Item:
 @dataclass
 class SearchConfig:
     """Represents a search configuration."""
+
     keyword: str
     category_code: str
     category_name: str
@@ -41,6 +43,7 @@ class SearchConfig:
 @dataclass
 class BidHistory:
     """Represents a bid in the history."""
+
     bid: str
     timestamp: str  # ISO format
 
@@ -55,6 +58,7 @@ class BidHistory:
 @dataclass
 class TrackedItem:
     """Represents an item being tracked by a user."""
+
     lot_number: str
     sale_number: str
     title: str
