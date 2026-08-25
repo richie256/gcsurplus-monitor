@@ -15,13 +15,16 @@ import logging
 import re
 import sys
 import time
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+
+# Import models and storage
+from models import Item, SearchConfig, TrackedItem
+from storage import load_config, load_seen, save_seen, load_json, save_json
 
 # ─────────────────────────────────────────────
 #  Configuration
@@ -36,6 +39,10 @@ SEARCH_URL = f"{BASE_URL}/mn-fra.cfm"
 
 DEFAULT_CONFIG = {
     "discord_webhook_url": "",
+    "discord_application_id": "",
+    "discord_public_key": "",
+    "discord_bot_token": "",
+    "interaction_endpoint_port": 8080,
     "check_interval_minutes": 30,
     "searches": [
         {
@@ -62,37 +69,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
-#  Dataclasses
+#  Dataclasses - imported from models.py
 # ─────────────────────────────────────────────
-
-
-@dataclass
-class Item:
-    lot_number: str
-    sale_number: str
-    sale_ref: str  # ex: "R6TO0018662 - 6TO016165-EP976-JG"
-    title: str
-    description: str  # description complète
-    current_bid: str
-    min_bid: str
-    close_date: str
-    time_left: str
-    location: str
-    quantity: str
-    sale_type: str
-    condition: str
-    image_url: str  # URL absolue de la 1re image
-    all_image_urls: list
-    url: str
-    found_at: str = field(default_factory=lambda: datetime.now().isoformat())
-
-
-@dataclass
-class SearchConfig:
-    keyword: str
-    category_code: str
-    category_name: str
-    enabled: bool = True
+# Item, SearchConfig, and TrackedItem are now imported from models.py
 
 
 # ─────────────────────────────────────────────
@@ -494,8 +473,8 @@ def build_embed(item: Item, search: SearchConfig) -> dict:
     return embed
 
 
-def send_discord_notification(webhook_url: str, item: Item, search: SearchConfig) -> bool:
-    """Envoie une notification Discord via webhook."""
+def send_discord_notification(webhook_url: str, item: Item, search: SearchConfig, application_id: str = "") -> bool:
+    """Envoie une notification Discord via webhook avec bouton 'Interested'."""
     if not webhook_url:
         log.warning("Webhook Discord non configuré — notification ignorée.")
         return False
@@ -507,6 +486,22 @@ def send_discord_notification(webhook_url: str, item: Item, search: SearchConfig
         "avatar_url": "https://gcsurplus.ca/images/gcsurplus-mini-logo-new.png",
         "embeds": [embed],
     }
+
+    # Add "Interested" button if application_id is configured
+    if application_id:
+        payload["components"] = [
+            {
+                "type": 1,  # Action Row
+                "components": [
+                    {
+                        "type": 2,  # Button
+                        "style": 1,  # Primary (blue)
+                        "label": "👁️ Interested",
+                        "custom_id": f"interested_{item.lot_number}",
+                    }
+                ]
+            }
+        ]
 
     try:
         resp = requests.post(
@@ -572,6 +567,7 @@ def send_discord_test(webhook_url: str) -> None:
 
 def run_once(config: dict, session: requests.Session) -> int:
     webhook_url = config.get("discord_webhook_url", "")
+    application_id = config.get("discord_application_id", "")
     seen = load_seen()
     new_count = 0
 
@@ -601,7 +597,7 @@ def run_once(config: dict, session: requests.Session) -> int:
             new_count += 1
 
             if webhook_url:
-                send_discord_notification(webhook_url, item, search)
+                send_discord_notification(webhook_url, item, search, application_id)
                 time.sleep(1)
             else:
                 log.warning("Webhook Discord non configuré — ajoutez 'discord_webhook_url' dans config.json.")
@@ -614,9 +610,33 @@ def run_once(config: dict, session: requests.Session) -> int:
 
 def run_loop(config: dict) -> None:
     interval_min = config.get("check_interval_minutes", 30)
+    webhook_url = config.get("discord_webhook_url", "")
+    application_id = config.get("discord_application_id", "")
+
     log.info("🚀 Surveillance démarrée — vérification toutes les %d min.", interval_min)
 
+    # Start Discord bot server if application_id is configured
+    bot_thread = None
+    if application_id:
+        try:
+            from bot import start_bot_server
+            bot_thread = start_bot_server(config)
+            log.info("✅ Discord interaction server started")
+        except ImportError as e:
+            log.warning(f"Could not start bot server: {e}")
+            log.warning("Button interactions will not work. Install flask and pynacl.")
+    else:
+        log.info("ℹ️  No Discord application_id configured — button interactions disabled")
+
     session = requests.Session()
+
+    # Import tracker
+    try:
+        from tracker import check_tracked_items
+        tracker_available = True
+    except ImportError as e:
+        log.warning(f"Could not import tracker: {e}")
+        tracker_available = False
 
     while True:
         # Skip checks between midnight (0) and 6 AM
@@ -629,8 +649,15 @@ def run_loop(config: dict) -> None:
             continue
 
         try:
+            # Check for new items
             n = run_once(config, session)
             log.info("✓ Cycle terminé — %d nouvel(aux) article(s).", n)
+
+            # Check tracked items for updates and alerts
+            if tracker_available:
+                alerts = check_tracked_items(session, webhook_url)
+                if alerts > 0:
+                    log.info("📊 %d notification(s) envoyée(s) pour articles suivis.", alerts)
         except Exception as e:
             log.exception("Erreur inattendue : %s", e)
 

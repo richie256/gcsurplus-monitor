@@ -1,5 +1,9 @@
 {
   "discord_webhook_url": "",
+  "discord_application_id": "",
+  "discord_public_key": "",
+  "discord_bot_token": "",
+  "interaction_endpoint_port": 8080,
   "check_interval_minutes": 30,
   "searches": [
     {

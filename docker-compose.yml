@@ -5,9 +5,12 @@ services:
     restart: unless-stopped
     environment:
       - TZ=America/Toronto
+    ports:
+      - "8080:8080"
     volumes:
       - ./config.json:/app/config.json:ro
       - ./seen_items.json:/app/seen_items.json
+      - ./tracked_items.json:/app/tracked_items.json
       - ./scraper.log:/app/scraper.log
     command: python scraper.py
 
