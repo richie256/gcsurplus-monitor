@@ -5,7 +5,6 @@ Data models for GCSurplus Monitor.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -78,7 +77,7 @@ class TrackedItem:
     alert_sent_24h: bool = False
     alert_sent_1h: bool = False
     alert_sent_15m: bool = False
-    last_checked: Optional[str] = None
+    last_checked: str | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""

@@ -10,7 +10,6 @@ Usage:
 """
 
 import argparse
-import json
 import logging
 import re
 import sys
@@ -23,8 +22,8 @@ import requests
 from bs4 import BeautifulSoup
 
 # Import models and storage
-from models import Item, SearchConfig, TrackedItem
-from storage import load_config, load_seen, save_seen, load_json, save_json
+from models import Item, SearchConfig
+from storage import load_config, load_seen, save_seen
 
 # ─────────────────────────────────────────────
 #  Configuration
@@ -75,37 +74,8 @@ log = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────
-#  Config / state helpers
+#  Config / state helpers - imported from storage.py
 # ─────────────────────────────────────────────
-
-
-def load_config() -> dict:
-    if not CONFIG_FILE.exists():
-        log.info("config.json introuvable — création avec les valeurs par défaut.")
-        save_json(CONFIG_FILE, DEFAULT_CONFIG)
-        return DEFAULT_CONFIG
-    return load_json(CONFIG_FILE)
-
-
-def load_json(path: Path) -> dict:
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_json(path: Path, data) -> None:
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def load_seen() -> set:
-    if not SEEN_FILE.exists():
-        return set()
-    data = load_json(SEEN_FILE)
-    return set(data.get("seen", []))
-
-
-def save_seen(seen: set) -> None:
-    save_json(SEEN_FILE, {"seen": sorted(seen)})
 
 
 # ─────────────────────────────────────────────
@@ -616,11 +586,10 @@ def run_loop(config: dict) -> None:
     log.info("🚀 Surveillance démarrée — vérification toutes les %d min.", interval_min)
 
     # Start Discord bot server if application_id is configured
-    bot_thread = None
     if application_id:
         try:
             from bot import start_bot_server
-            bot_thread = start_bot_server(config)
+            start_bot_server(config)
             log.info("✅ Discord interaction server started")
         except ImportError as e:
             log.warning(f"Could not start bot server: {e}")

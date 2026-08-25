@@ -8,23 +8,21 @@ and handles button clicks for tracking items.
 
 import json
 import logging
-import sys
 import threading
-from typing import Optional
 
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 
 try:
-    from nacl.signing import VerifyKey
     from nacl.exceptions import BadSignatureError
+    from nacl.signing import VerifyKey
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
     VerifyKey = None
     BadSignatureError = None
 
-from storage import track_item, get_tracked_item, load_tracked_items
-from models import TrackedItem, Item
+from models import TrackedItem
+from storage import get_tracked_item, track_item
 
 # ─────────────────────────────────────────────
 #  Logging
@@ -39,9 +37,9 @@ log = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Will be set from config
-PUBLIC_KEY: Optional[str] = None
-APPLICATION_ID: Optional[str] = None
-WEBHOOK_URL: Optional[str] = None
+PUBLIC_KEY: str | None = None
+APPLICATION_ID: str | None = None
+WEBHOOK_URL: str | None = None
 
 
 def verify_discord_signature(public_key: str, data: bytes, signature: str, timestamp: str) -> bool:
@@ -107,7 +105,7 @@ def handle_button_click(data: dict) -> tuple:
             return jsonify({
                 'type': 4,
                 'data': {
-                    'content': f"⚠️ Item already tracked by another user.",
+                    'content': "⚠️ Item already tracked by another user.",
                     'flags': 64  # Ephemeral - only visible to user
                 }
             })
@@ -149,7 +147,7 @@ def handle_button_click(data: dict) -> tuple:
         return jsonify({
             'type': 4,
             'data': {
-                'content': f"✅ You are now tracking this item! I'll notify you of bid changes and before the auction closes.",
+                'content': "✅ Tracking this item! I'll notify you of bid changes and before auction close.",
                 'flags': 64  # Ephemeral
             }
         })
@@ -173,7 +171,7 @@ def handle_button_click(data: dict) -> tuple:
             return jsonify({
                 'type': 4,
                 'data': {
-                    'content': f"⚠️ You are not tracking this item.",
+                    'content': "⚠️ You are not tracking this item.",
                     'flags': 64
                 }
             })
@@ -230,8 +228,8 @@ if __name__ == '__main__':
     print("This is for development only. Use the main scraper.py for production.")
 
     # Load config
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     config_file = Path(__file__).parent / "config.json"
     if config_file.exists():

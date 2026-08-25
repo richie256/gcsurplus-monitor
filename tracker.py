@@ -11,11 +11,10 @@ This module handles:
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 
 import requests
 
-from models import TrackedItem, BidHistory
+from models import BidHistory, TrackedItem
 from storage import load_tracked_items, save_tracked_items, untrack_item
 
 # ─────────────────────────────────────────────
@@ -33,7 +32,7 @@ FRENCH_MONTHS = {
     'mai': 5, 'juin': 6, 'juillet': 7, 'août': 8,
     'septembre': 9, 'octobre': 10, 'novembre': 11, 'décembre': 12,
     # Accented variants
-    'fevrier': 2, 'aout': 8, 'septembre': 9, 'decembre': 12,
+    'fevrier': 2, 'aout': 8, 'decembre': 12,
 }
 
 # ─────────────────────────────────────────────
@@ -51,7 +50,7 @@ ALERT_THRESHOLDS = [
 #  Close Date Parsing
 # ─────────────────────────────────────────────
 
-def parse_close_date(close_date_str: str) -> Optional[datetime]:
+def parse_close_date(close_date_str: str) -> datetime | None:
     """
     Parse close date string from GCSurplus.
 
@@ -115,7 +114,7 @@ def format_time_remaining(delta: timedelta) -> str:
 #  Bid Price Parsing
 # ─────────────────────────────────────────────
 
-def parse_bid_amount(bid_str: str) -> Optional[float]:
+def parse_bid_amount(bid_str: str) -> float | None:
     """
     Parse bid string to float.
 
@@ -137,13 +136,13 @@ def parse_bid_amount(bid_str: str) -> Optional[float]:
 #  Item Re-scraping
 # ─────────────────────────────────────────────
 
-def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> Optional[Dict]:
+def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> dict | None:
     """
     Re-scrape item page to get current bid and time left.
 
     Returns dict with updated fields or None if fetch fails.
     """
-    from scraper import HEADERS, fetch_item_detail
+    from scraper import fetch_item_detail
 
     try:
         ref = {
@@ -171,7 +170,7 @@ def fetch_tracked_item_update(item: TrackedItem, session: requests.Session) -> O
 #  Alert Checking
 # ─────────────────────────────────────────────
 
-def check_alert_needed(item: TrackedItem, now: datetime) -> Tuple[bool, str, str]:
+def check_alert_needed(item: TrackedItem, now: datetime) -> tuple[bool, str, str]:
     """
     Check if an alert should be sent for this item.
 
@@ -271,7 +270,7 @@ def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
                 notifications_sent += 1
 
         # Save updates
-        save_tracked_items({lot_number: item for lot_number, item in tracked.items()})
+        save_tracked_items(dict(tracked.items()))
 
     return notifications_sent
 
@@ -343,7 +342,6 @@ def send_auction_ended_notification(item: TrackedItem, webhook_url: str) -> None
 # ─────────────────────────────────────────────
 
 if __name__ == '__main__':
-    import sys
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
 
     # Test close date parsing

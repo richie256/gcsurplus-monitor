@@ -5,7 +5,6 @@ Storage utilities for persisting data to JSON files.
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from models import TrackedItem
 
@@ -48,7 +47,7 @@ def save_seen(seen: set) -> None:
     save_json(SEEN_FILE, {"seen": sorted(seen)})
 
 
-def load_tracked_items() -> Dict[str, TrackedItem]:
+def load_tracked_items() -> dict[str, TrackedItem]:
     """Load tracked items from tracked_items.json."""
     if not TRACKED_FILE.exists():
         return {}
@@ -87,7 +86,7 @@ def load_tracked_items() -> Dict[str, TrackedItem]:
     return tracked
 
 
-def save_tracked_items(tracked: Dict[str, TrackedItem]) -> None:
+def save_tracked_items(tracked: dict[str, TrackedItem]) -> None:
     """Save tracked items to tracked_items.json."""
     data = {
         "tracked": {
@@ -115,13 +114,13 @@ def untrack_item(lot_number: str) -> bool:
     return False
 
 
-def get_tracked_item(lot_number: str) -> Optional[TrackedItem]:
+def get_tracked_item(lot_number: str) -> TrackedItem | None:
     """Get a specific tracked item by lot number."""
     tracked = load_tracked_items()
     return tracked.get(lot_number)
 
 
-def get_user_tracked_items(user_id: str) -> List[TrackedItem]:
+def get_user_tracked_items(user_id: str) -> list[TrackedItem]:
     """Get all items tracked by a specific user."""
     tracked = load_tracked_items()
     return [item for item in tracked.values() if item.user_id == user_id]
