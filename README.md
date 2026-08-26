@@ -11,6 +11,18 @@ lorsque de nouveaux articles correspondant à vos critères apparaissent.
 - ⚙️ Configuration entièrement **configurable via `config.json`**
 - 📄 Logs persistants dans `scraper.log`
 - 🐳 Support Docker avec configuration de fuseau horaire
+- 🤝 Bouton **« Intéressé »** dans les notifications Discord pour suivre un article
+- 📈 Suivi des mises et alertes automatiques à **24h, 1h et 15 min** avant la clôture
+
+## Architecture
+
+| Fichier | Rôle |
+|---------|------|
+| `scraper.py` | Boucle principale, scraping GCSurplus, notifications Discord |
+| `bot.py` | Serveur Flask qui reçoit les interactions Discord (boutons) |
+| `tracker.py` | Suivi des articles, détection de nouvelles mises, alertes de clôture |
+| `storage.py` | Persistence JSON (`config`, `seen`, `tracked`) |
+| `models.py` | Dataclasses (`Item`, `SearchConfig`, `TrackedItem`, `BidHistory`) |
 
 ## Installation
 
@@ -20,11 +32,15 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Éditez `config.json` :
+Éditez `config.json` (créé automatiquement au premier lancement avec des valeurs par défaut) :
 
 ```json
 {
   "discord_webhook_url": "https://discord.com/api/webhooks/VOTRE_WEBHOOK",
+  "discord_application_id": "VOTRE_APPLICATION_ID",
+  "discord_public_key": "VOTRE_PUBLIC_KEY",
+  "discord_bot_token": "VOTRE_BOT_TOKEN",
+  "interaction_endpoint_port": 8080,
   "check_interval_minutes": 30,
   "searches": [
     {
@@ -49,6 +65,16 @@ pip install -r requirements.txt
 2. Créer un nouveau webhook → Copier l'URL
 3. Collez l'URL dans `discord_webhook_url`
 
+### Configurer le bot Discord (bouton « Intéressé »)
+
+Le bouton « Intéressé » dans les notifications Discord permet aux utilisateurs de suivre un article. Cela nécessite un bot Discord avec un endpoint d'interaction :
+
+1. Créez une application sur [discord.com/developers](https://discord.com/developers/applications)
+2. Récupérez `Application ID` et `Public Key` → renseignez `discord_application_id` et `discord_public_key`
+3. Créez un bot token → renseignez `discord_bot_token`
+4. Dans les paramètres de l'application Discord, configurez l'**Interactions Endpoint URL** vers `http://VOTRE_SERVEUR:8080/interactions`
+5. Le serveur Flask démarre automatiquement avec `scraper.py` sur le port `interaction_endpoint_port`
+
 ### Codes de catégorie GCSurplus
 
 | Code | Catégorie |
@@ -68,13 +94,13 @@ pip install -r requirements.txt
 
 ```bash
 # Surveillance continue (toutes les N minutes selon config.json)
-python scraper.py
+python3 scraper.py
 
 # Vérification unique (utile pour tester)
-python scraper.py --once
+python3 scraper.py --once
 
 # Test de la notification Discord
-python scraper.py --test-discord
+python3 scraper.py --test-discord
 ```
 
 ### Docker
@@ -103,7 +129,9 @@ gh auth login
 docker run -d --name gcsurplus \
   -v $(pwd)/config.json:/app/config.json:ro \
   -v $(pwd)/seen_items.json:/app/seen_items.json \
+  -v $(pwd)/tracked_items.json:/app/tracked_items.json \
   -v $(pwd)/scraper.log:/app/scraper.log \
+  -p 8080:8080 \
   -e TZ=America/Toronto \
   --restart unless-stopped \
   ghcr.io/richie256/gcsurplus-monitor:latest
@@ -122,12 +150,12 @@ docker push ghcr.io/richie256/gcsurplus-monitor:v1.0.0
 
 **Vérification unique:**
 ```bash
-docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python scraper.py
+docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python3 scraper.py --once
 ```
 
 **Test Discord:**
 ```bash
-docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python scraper.py --test-discord
+docker run --rm -v $(pwd)/config.json:/app/config.json:ro ghcr.io/richie256/gcsurplus-monitor:latest python3 scraper.py --test-discord
 ```
 
 ### Docker Compose
@@ -165,9 +193,12 @@ services:
   gcsurplus:
     image: ghcr.io/richie256/gcsurplus-monitor:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     volumes:
       - ./config.json:/app/config.json:ro
       - ./seen_items.json:/app/seen_items.json
+      - ./tracked_items.json:/app/tracked_items.json
       - ./scraper.log:/app/scraper.log
     environment:
       - TZ=America/Toronto
@@ -182,8 +213,9 @@ docker compose up -d
 
 | Fichier | Description |
 |---------|-------------|
-| `config.json` | Configuration (webhook, fréquence, recherches) |
+| `config.json` | Configuration (webhook, fréquence, recherches) — créé automatiquement si absent |
 | `seen_items.json` | Lots déjà notifiés (pour éviter les doublons) |
+| `tracked_items.json` | Articles suivis par les utilisateurs via le bouton « Intéressé » |
 | `scraper.log` | Journal d'exécution |
 
 ## Ajouter d'autres articles à surveiller
