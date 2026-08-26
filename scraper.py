@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 
 # Import models and storage
 from models import Item, SearchConfig
-from storage import DEFAULT_CONFIG, load_config, load_seen, save_seen
+from storage import load_config, load_seen, save_seen
 
 # ─────────────────────────────────────────────
 #  Configuration
