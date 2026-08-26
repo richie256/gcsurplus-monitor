@@ -3,7 +3,7 @@
 Data models for GCSurplus Monitor.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 
 
@@ -49,10 +49,7 @@ class BidHistory:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
-            "bid": self.bid,
-            "timestamp": self.timestamp,
-        }
+        return asdict(self)
 
 
 @dataclass
@@ -85,52 +82,33 @@ class TrackedItem:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
-            "lot_number": self.lot_number,
-            "sale_number": self.sale_number,
-            "title": self.title,
-            "url": self.url,
-            "current_bid": self.current_bid,
-            "min_bid": self.min_bid,
-            "close_date": self.close_date,
-            "time_left": self.time_left,
-            "location": self.location,
-            "quantity": self.quantity,
-            "sale_type": self.sale_type,
-            "condition": self.condition,
-            "image_url": self.image_url,
-            "all_image_urls": self.all_image_urls,
-            "sale_ref": self.sale_ref,
-            "description": self.description,
-            "user_id": self.user_id,
-            "interested_at": self.interested_at,
-            "bid_history": self.bid_history,
-            "alert_sent_24h": self.alert_sent_24h,
-            "alert_sent_1h": self.alert_sent_1h,
-            "alert_sent_15m": self.alert_sent_15m,
-            "last_checked": self.last_checked,
-        }
+        return asdict(self)
 
     @classmethod
-    def from_item(cls, item: Item, user_id: str) -> "TrackedItem":
-        """Create a TrackedItem from an Item and user ID."""
+    def from_dict(cls, d: dict) -> "TrackedItem":
+        """Reconstruct a TrackedItem from a JSON-deserialized dictionary."""
         return cls(
-            lot_number=item.lot_number,
-            sale_number=item.sale_number,
-            title=item.title,
-            url=item.url,
-            current_bid=item.current_bid,
-            min_bid=item.min_bid,
-            close_date=item.close_date,
-            time_left=item.time_left,
-            location=item.location,
-            quantity=item.quantity,
-            sale_type=item.sale_type,
-            condition=item.condition,
-            image_url=item.image_url,
-            all_image_urls=item.all_image_urls,
-            sale_ref=item.sale_ref,
-            description=item.description,
-            user_id=user_id,
-            bid_history=[],
+            lot_number=d.get("lot_number", ""),
+            sale_number=d.get("sale_number", ""),
+            title=d.get("title", ""),
+            url=d.get("url", ""),
+            current_bid=d.get("current_bid", "N/D"),
+            min_bid=d.get("min_bid", "N/D"),
+            close_date=d.get("close_date", "N/D"),
+            time_left=d.get("time_left", "N/D"),
+            location=d.get("location", "N/D"),
+            quantity=d.get("quantity", "N/D"),
+            sale_type=d.get("sale_type", "N/D"),
+            condition=d.get("condition", "N/D"),
+            image_url=d.get("image_url", ""),
+            all_image_urls=d.get("all_image_urls", []),
+            sale_ref=d.get("sale_ref", "N/D"),
+            description=d.get("description", ""),
+            user_id=d.get("user_id", ""),
+            interested_at=d.get("interested_at", ""),
+            bid_history=d.get("bid_history", []),
+            alert_sent_24h=d.get("alert_sent_24h", False),
+            alert_sent_1h=d.get("alert_sent_1h", False),
+            alert_sent_15m=d.get("alert_sent_15m", False),
+            last_checked=d.get("last_checked"),
         )

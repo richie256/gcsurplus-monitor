@@ -71,37 +71,7 @@ def load_tracked_items() -> dict[str, TrackedItem]:
         return {}
 
     data = load_json(TRACKED_FILE)
-    tracked = {}
-
-    for lot_number, item_dict in data.get("tracked", {}).items():
-        # Convert dict to TrackedItem
-        tracked[lot_number] = TrackedItem(
-            lot_number=item_dict.get("lot_number", ""),
-            sale_number=item_dict.get("sale_number", ""),
-            title=item_dict.get("title", ""),
-            url=item_dict.get("url", ""),
-            current_bid=item_dict.get("current_bid", "N/D"),
-            min_bid=item_dict.get("min_bid", "N/D"),
-            close_date=item_dict.get("close_date", "N/D"),
-            time_left=item_dict.get("time_left", "N/D"),
-            location=item_dict.get("location", "N/D"),
-            quantity=item_dict.get("quantity", "N/D"),
-            sale_type=item_dict.get("sale_type", "N/D"),
-            condition=item_dict.get("condition", "N/D"),
-            image_url=item_dict.get("image_url", ""),
-            all_image_urls=item_dict.get("all_image_urls", []),
-            sale_ref=item_dict.get("sale_ref", "N/D"),
-            description=item_dict.get("description", ""),
-            user_id=item_dict.get("user_id", ""),
-            interested_at=item_dict.get("interested_at", ""),
-            bid_history=item_dict.get("bid_history", []),
-            alert_sent_24h=item_dict.get("alert_sent_24h", False),
-            alert_sent_1h=item_dict.get("alert_sent_1h", False),
-            alert_sent_15m=item_dict.get("alert_sent_15m", False),
-            last_checked=item_dict.get("last_checked"),
-        )
-
-    return tracked
+    return {lot_number: TrackedItem.from_dict(item_dict) for lot_number, item_dict in data.get("tracked", {}).items()}
 
 
 def save_tracked_items(tracked: dict[str, TrackedItem]) -> None:

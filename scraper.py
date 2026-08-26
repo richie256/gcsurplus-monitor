@@ -162,16 +162,17 @@ def scrape_listing(category: str, keyword: str, session: requests.Session) -> li
         all_refs.extend(refs)
         log.debug("Page %d → %d référence(s)", page + 1, len(refs))
 
-        if not has_next_page(html) or not refs:
+        if not refs:
             break
 
+        # Single parse to find the next-page link
         soup = BeautifulSoup(html, "html.parser")
         next_link = soup.find("a", string=lambda t: t and "Suivant" in t)
-        if next_link:
-            qs = parse_qs(urlparse(next_link["href"]).query)
-            start = int(qs.get("str", [str(start + 10)])[0])
-        else:
+        if not next_link:
             break
+
+        qs = parse_qs(urlparse(next_link["href"]).query)
+        start = int(qs.get("str", [str(start + 10)])[0])
 
         time.sleep(2)
 
@@ -562,6 +563,8 @@ def run_once(config: dict, session: requests.Session) -> int:
 
 def run_loop(config: dict) -> None:
     interval_min = config.get("check_interval_minutes", 30)
+    # Extracted here for bot server startup and tracker calls.
+    # run_once() re-reads these from config so it can also be called standalone.
     webhook_url = config.get("discord_webhook_url", "")
     application_id = config.get("discord_application_id", "")
 
