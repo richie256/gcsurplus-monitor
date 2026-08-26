@@ -27,11 +27,31 @@ def save_json(path: Path, data) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+DEFAULT_CONFIG = {
+    "discord_webhook_url": "",
+    "discord_application_id": "",
+    "discord_public_key": "",
+    "discord_bot_token": "",
+    "interaction_endpoint_port": 8080,
+    "check_interval_minutes": 30,
+    "searches": [
+        {
+            "keyword": "Montre",
+            "category_code": "9800",
+            "category_name": "9800 - Bijoux, pièces de collection, oeuvres d'art et artisanat, et plus",
+            "enabled": True,
+        }
+    ],
+}
+
+
 def load_config() -> dict:
-    """Load configuration from config.json."""
+    """Load configuration from config.json. Creates a default if missing."""
     if not CONFIG_FILE.exists():
-        raise FileNotFoundError(f"Configuration file not found: {CONFIG_FILE}")
+        save_json(CONFIG_FILE, DEFAULT_CONFIG)
+        return DEFAULT_CONFIG
     return load_json(CONFIG_FILE)
+
 
 
 def load_seen() -> set:

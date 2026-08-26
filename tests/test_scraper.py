@@ -137,7 +137,7 @@ class TestConfig:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(sample_config))
 
-        with patch("scraper.CONFIG_FILE", config_file):
+        with patch("storage.CONFIG_FILE", config_file):
             config = load_config()
             assert config == sample_config
 
@@ -145,7 +145,7 @@ class TestConfig:
         """Test that missing config creates default."""
         config_file = tmp_path / "config.json"
 
-        with patch("scraper.CONFIG_FILE", config_file):
+        with patch("storage.CONFIG_FILE", config_file):
             config = load_config()
             assert "discord_webhook_url" in config
             assert "searches" in config
@@ -155,7 +155,7 @@ class TestConfig:
         """Test loading seen items when file doesn't exist."""
         seen_file = tmp_path / "seen_items.json"
 
-        with patch("scraper.SEEN_FILE", seen_file):
+        with patch("storage.SEEN_FILE", seen_file):
             seen = load_seen()
             assert seen == set()
 
@@ -164,7 +164,7 @@ class TestConfig:
         seen_file = tmp_path / "seen_items.json"
         seen_file.write_text(json.dumps({"seen": ["123", "456"]}))
 
-        with patch("scraper.SEEN_FILE", seen_file):
+        with patch("storage.SEEN_FILE", seen_file):
             seen = load_seen()
             assert seen == {"123", "456"}
 
@@ -172,7 +172,7 @@ class TestConfig:
         """Test saving seen items."""
         seen_file = tmp_path / "seen_items.json"
 
-        with patch("scraper.SEEN_FILE", seen_file):
+        with patch("storage.SEEN_FILE", seen_file):
             save_seen({"456", "123"})
 
             data = json.loads(seen_file.read_text())

@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 
 # Import models and storage
 from models import Item, SearchConfig
-from storage import load_config, load_seen, save_seen
+from storage import DEFAULT_CONFIG, load_config, load_seen, save_seen
 
 # ─────────────────────────────────────────────
 #  Configuration
@@ -36,22 +36,6 @@ LOG_FILE = Path(__file__).parent / "scraper.log"
 BASE_URL = "https://gcsurplus.ca"
 SEARCH_URL = f"{BASE_URL}/mn-fra.cfm"
 
-DEFAULT_CONFIG = {
-    "discord_webhook_url": "",
-    "discord_application_id": "",
-    "discord_public_key": "",
-    "discord_bot_token": "",
-    "interaction_endpoint_port": 8080,
-    "check_interval_minutes": 30,
-    "searches": [
-        {
-            "keyword": "Montre",
-            "category_code": "9800",
-            "category_name": "9800 - Bijoux, pièces de collection, oeuvres d'art et artisanat, et plus",
-            "enabled": True,
-        }
-    ],
-}
 
 # ─────────────────────────────────────────────
 #  Logging
