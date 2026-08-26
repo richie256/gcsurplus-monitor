@@ -53,7 +53,6 @@ def load_config() -> dict:
     return load_json(CONFIG_FILE)
 
 
-
 def load_seen() -> set:
     """Load seen items lot numbers from seen_items.json."""
     if not SEEN_FILE.exists():
