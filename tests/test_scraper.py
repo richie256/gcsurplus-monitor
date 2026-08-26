@@ -403,8 +403,8 @@ class TestIntegration:
         responses.post("https://discord.com/api/webhooks/test", status=204)
 
         with (
-            patch("scraper.CONFIG_FILE", config_file),
-            patch("scraper.SEEN_FILE", seen_file),
+            patch("storage.CONFIG_FILE", config_file),
+            patch("storage.SEEN_FILE", seen_file),
         ):
             import requests
 
@@ -424,8 +424,8 @@ class TestIntegration:
         responses.get("https://gcsurplus.ca/mn-fra.cfm", body=sample_listing_html, status=200)
 
         with (
-            patch("scraper.CONFIG_FILE", config_file),
-            patch("scraper.SEEN_FILE", seen_file),
+            patch("storage.CONFIG_FILE", config_file),
+            patch("storage.SEEN_FILE", seen_file),
         ):
             import requests
 

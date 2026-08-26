@@ -66,7 +66,7 @@ def handle_interaction():
     signature = request.headers.get("X-Signature-Ed25519", "")
     timestamp = request.headers.get("X-Signature-Timestamp", "")
 
-    if PUBLIC_KEY and not verify_discord_signature(PUBLIC_KEY, signature, timestamp, request.data):
+    if PUBLIC_KEY and not verify_discord_signature(PUBLIC_KEY, request.data, signature, timestamp):
         return jsonify({"error": "Invalid signature"}), 401
 
     data = request.json

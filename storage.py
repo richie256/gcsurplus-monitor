@@ -12,7 +12,6 @@ from models import TrackedItem
 CONFIG_FILE = Path(__file__).parent / "config.json"
 SEEN_FILE = Path(__file__).parent / "seen_items.json"
 TRACKED_FILE = Path(__file__).parent / "tracked_items.json"
-LOG_FILE = Path(__file__).parent / "scraper.log"
 
 
 def load_json(path: Path) -> dict:

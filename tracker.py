@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import requests
 
 from models import BidHistory, TrackedItem
-from storage import load_tracked_items, save_tracked_items, untrack_item
+from storage import load_tracked_items, save_tracked_items
 
 # ─────────────────────────────────────────────
 #  Logging
@@ -239,6 +239,7 @@ def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
     log.info(f"🔍 Checking {len(tracked)} tracked item(s) for updates")
     notifications_sent = 0
     now = datetime.now()
+    lots_to_remove = []
 
     for lot_number, item in list(tracked.items()):
         # Fetch current state
@@ -254,14 +255,7 @@ def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
         if new_bid and old_bid and new_bid > old_bid:
             # Record bid history
             bid_entry = BidHistory(bid=updates["current_bid"], timestamp=now.isoformat())
-            item.bid_history.append(
-                bid_entry.to_dict()
-                if hasattr(bid_entry, "to_dict")
-                else {
-                    "bid": bid_entry.bid,
-                    "timestamp": bid_entry.timestamp,
-                }
-            )
+            item.bid_history.append({"bid": bid_entry.bid, "timestamp": bid_entry.timestamp})
 
             # Send bid update notification
             send_bid_notification(item, updates["current_bid"], old_bid, webhook_url)
@@ -280,26 +274,28 @@ def check_tracked_items(session: requests.Session, webhook_url: str) -> int:
         should_alert, alert_type, alert_msg = check_alert_needed(item, now)
         if should_alert:
             if alert_type == "ended":
-                # Auction ended - remove from tracking
+                # Auction ended - mark for removal
                 send_auction_ended_notification(item, webhook_url)
-                untrack_item(lot_number)
-                log.info(f"🗑️ Removed ended auction: {lot_number}")
+                lots_to_remove.append(lot_number)
+                log.info(f"🗑️ Removing ended auction: {lot_number}")
             else:
                 # Time-based alert
                 send_alert_notification(item, alert_msg, webhook_url)
                 setattr(item, alert_type, True)
                 notifications_sent += 1
 
-        # Save updates
-        save_tracked_items(dict(tracked.items()))
+    # Remove ended auctions from the in-memory dict
+    for lot_number in lots_to_remove:
+        tracked.pop(lot_number, None)
+
+    # Persist all changes in a single write
+    save_tracked_items(tracked)
 
     return notifications_sent
 
 
 def send_bid_notification(item: TrackedItem, new_bid: str, old_bid: float, webhook_url: str) -> None:
     """Send notification about bid increase."""
-    import requests
-
     content = (
         f"📈 **Bid increased!**\n"
         f"[{item.title}]({item.url})\n"
@@ -321,8 +317,6 @@ def send_bid_notification(item: TrackedItem, new_bid: str, old_bid: float, webho
 
 def send_alert_notification(item: TrackedItem, alert_msg: str, webhook_url: str) -> None:
     """Send time-based alert notification."""
-    import requests
-
     payload = {
         "username": "GCSurplus Tracker ⏰",
         "content": f"{alert_msg}\n<@{item.user_id}>",
@@ -337,8 +331,6 @@ def send_alert_notification(item: TrackedItem, alert_msg: str, webhook_url: str)
 
 def send_auction_ended_notification(item: TrackedItem, webhook_url: str) -> None:
     """Send notification that auction has ended."""
-    import requests
-
     content = f"🔨 **Auction ended!**\n[{item.title}]({item.url})\nFinal bid: **{item.current_bid}**\n<@{item.user_id}>"
 
     payload = {

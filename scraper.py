@@ -29,8 +29,6 @@ from storage import load_config, load_seen, save_seen
 #  Configuration
 # ─────────────────────────────────────────────
 
-CONFIG_FILE = Path(__file__).parent / "config.json"
-SEEN_FILE = Path(__file__).parent / "seen_items.json"
 LOG_FILE = Path(__file__).parent / "scraper.log"
 
 BASE_URL = "https://gcsurplus.ca"
@@ -225,13 +223,14 @@ def fetch_item_detail(ref: dict, session: requests.Session) -> Item:
     raw = main.get_text(separator="\n", strip=True)
 
     # ── Helpers d'extraction ────────────────
+    lines = raw.splitlines()
+
     def grab(labels, default="N/D"):
         for label in labels:
-            for line in raw.splitlines():
+            for i, line in enumerate(lines):
                 if label.lower() in line.lower():
                     # Retourne la ligne suivante non vide
-                    idx = raw.splitlines().index(line)
-                    for nxt in raw.splitlines()[idx + 1 : idx + 4]:
+                    for nxt in lines[i + 1 : i + 4]:
                         nxt = nxt.strip()
                         if nxt and nxt not in (":", "-"):
                             return nxt[:120]
@@ -552,11 +551,10 @@ def run_once(config: dict, session: requests.Session) -> int:
 
             if webhook_url:
                 send_discord_notification(webhook_url, item, search, application_id)
-                time.sleep(1)
             else:
                 log.warning("Webhook Discord non configuré — ajoutez 'discord_webhook_url' dans config.json.")
 
-            time.sleep(1)  # politesse entre les pages détail
+            time.sleep(1)  # politesse entre les pages détail / notifications
 
     save_seen(seen)
     return new_count
